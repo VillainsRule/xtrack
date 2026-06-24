@@ -1,6 +1,9 @@
 {
     "name": "xtrack",
     "main": "src/main.ts",
+    "scripts": {
+        "build": "bun build --compile --bytecode --minify --outfile ~/xtrack ./src/main.ts"
+    },
     "devDependencies": {
         "@types/bun": "^1.3.14"
     },
