@@ -24,11 +24,12 @@ const promptTrack = async (): Promise<string> => {
         name: 'action',
         message: 'whatcha wanna do?',
         choices: [
+            { name: 'statsByTime', message: 'view top tracks (time sorted)' },
             { name: 'editPlays', message: 'edit track plays' },
             { name: 'editSkips', message: 'edit track skips' },
             { name: 'findOrphans', message: 'find tracks not in any playlist' }
         ]
-    }) as { action: 'editPlays' | 'editSkips' | 'findOrphans' };
+    }) as { action: 'statsByTime' | 'editPlays' | 'editSkips' | 'findOrphans' };
 
     if (action === 'editPlays') {
         const track = await promptTrack();
@@ -77,5 +78,42 @@ const promptTrack = async (): Promise<string> => {
         `);
 
         console.log(res);
+    } else if (action === 'statsByTime') {
+        const res = osascript<string>(`
+            set tNames to name of every track of library playlist 1
+            set tPlays to played count of every track of library playlist 1
+            set tDurations to duration of every track of library playlist 1
+            set tArtists to artist of every track of library playlist 1
+            set tAlbums to album of every track of library playlist 1
+            set output to {}
+            repeat with i from 1 to count of tNames
+                set end of output to (item i of tNames & "%%%%" & item i of tPlays & "%%%%" & item i of tDurations & "%%%%" & item i of tArtists & "%%%%" & item i of tAlbums)
+            end repeat
+            return output as text
+        `);
+
+        const stats = res.split('\n');
+
+        const statsWithRuntime = stats.map(stat => {
+            const [name, plays, duration, artist, album] = stat.split('%%%%');
+            const runtime = parseFloat(plays) * parseFloat(duration);
+            return { name, plays: Number(plays), duration: Number(duration), runtime, artist, album };
+        });
+
+        const fmtRuntime = (s: number) => {
+            const h = Math.floor(s / 3600)
+            const m = Math.floor((s % 3600) / 60)
+            const sec = Math.floor(s % 60)
+            return [h && `${h}h`, m && `${m}m`, `${sec}s`].filter(Boolean).join(' ')
+        }
+
+        const top = statsWithRuntime.sort((a, b) => b.runtime - a.runtime).slice(0, 20);
+
+        console.table(top.map(s => ({
+            Name: s.name,
+            Artist: s.artist,
+            Plays: s.plays,
+            Runtime: fmtRuntime(Math.round(s.runtime))
+        })));
     }
 })();
