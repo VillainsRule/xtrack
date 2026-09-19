@@ -56,15 +56,18 @@ const promptTrack = async (): Promise<string> => {
 
         const res = osascript<string>(`
             set allTracks to every track of library playlist 1
-            set playlistTracks to {}
+            set allNames to name of every track of library playlist 1
+            set playlistNames to {}
             repeat with p in (every playlist whose special kind is none)
-                set playlistTracks to playlistTracks & (name of every track of p)
+                repeat with t in (every track of p)
+                    set end of playlistNames to (name of t)
+                end repeat
             end repeat
             set orphans to {}
-            repeat with t in allTracks
-                set tName to name of t
+            repeat with i from 1 to count of allTracks
+                set tName to item i of allNames
                 set found to false
-                repeat with pName in playlistTracks
+                repeat with pName in playlistNames
                     if pName as text is tName then
                         set found to true
                         exit repeat
